@@ -325,7 +325,13 @@ object proguarded extends CoursierInterfacePublishedModule {
       rule.setResult(to)
       rule
     }
-    val rules = Seq(
+    // JarJar remaps string constants that look like class names. That would rename the
+    // coursier system properties below too, which we'd rather keep as is, so that users can
+    // set them the same way, whether they use coursier directly or via coursier-interface.
+    // Identity rules, put before the more general coursier.** rule (the first matching rule
+    // wins), keep those strings untouched.
+    val identityRules = CoursierProperties.list.map(prop => rename(prop, prop))
+    val rules = identityRules ++ Seq(
       rename("scala.**", "coursierapi.shaded.scala.@1"),
       rename("coursier.**", "coursierapi.shaded.coursier.@1"),
       rename("dependency.**", "coursierapi.shaded.dependency.@1"),
@@ -392,6 +398,7 @@ object proguarded extends CoursierInterfacePublishedModule {
   def jar = Task {
     val jar0 = cleanedUpJar()
     Check.onlyNamespace("coursierapi", jar0.path.toIO)
+    Check.noShadedProperties(jar0.path.toIO)
     jar0
   }
   def docJar = interface(interfaceSv).docJar()
@@ -438,6 +445,13 @@ object `interface-test` extends Cross[InterfaceTest](Versions.scala)
 trait InterfaceTest extends CoursierInterfaceModule with CrossSbtModule with DependsOnProguarded { interfaceTest =>
   object test extends interfaceTest.SbtTests with TestModule.Junit4 {
     def junit4Version = Versions.junit
+    // SystemPropertyTests starts JVMs of its own, and needs our class path for that
+    def forkArgs = Task {
+      val classPath = runClasspath()
+        .map(_.path.toString)
+        .mkString(java.io.File.pathSeparator)
+      super.forkArgs() ++ Seq(s"-Dcoursier-interface.test-classpath=$classPath")
+    }
   }
 }
 

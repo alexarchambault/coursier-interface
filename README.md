@@ -9,6 +9,8 @@
 
 *coursier-interface* is a zero-dependency Java library, exposing some of the features of the [API of coursier](https://get-coursier.io/docs/api). *coursier-interface* shades coursier, along with all its dependencies, so that it doesn't have any public dependency, and can be safely used along with other Scala or coursier versions.
 
+Even though coursier and its dependencies are shaded, the environment variables and Java properties that coursier reads are left untouched. That is `COURSIER_REPOSITORIES` / `coursier.repositories`, `COURSIER_CACHE` / `coursier.cache`, etc. are read by *coursier-interface* just like they are by coursier itself.
+
 *coursier-interface* aims at maintaining backward binary compatibility as much as possible. This means that if you depend on version N of coursier-interface, any version M >= N is safe to use at runtime. Backward binary compatibility has not been broken since the very first release of coursier-interface, `0.0.1` (ignoring version `0.0.11`, which exposed some dependencies that should have been shaded).
 
 *coursier-interface* doesn't support as many features as the API of coursier itself. For now, it has equivalents for:
